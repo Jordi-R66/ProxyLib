@@ -7,7 +7,7 @@
 
 #pragma pack()
 typedef struct {
-	uint16_t serviceId;
+	uint16_t connId;
 	uint32_t packetNumber;
 	uint32_t size;
 } ProxyHeader;
