@@ -1,0 +1,3 @@
+[submodule "libs/Cryptography"]
+	path = libs/Cryptography
+	url = git@github.com:Jordi-R66/Cryptography.git
