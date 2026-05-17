@@ -1,3 +1,6 @@
 [submodule "libs/Cryptography"]
 	path = libs/Cryptography
 	url = git@github.com:Jordi-R66/Cryptography.git
+[submodule "libs/myOwnCLib"]
+	path = libs/myOwnCLib
+	url = git@github.com:Jordi-R66/myOwnCLib.git
