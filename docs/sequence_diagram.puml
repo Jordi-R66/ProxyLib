@@ -1,0 +1,64 @@
+@startuml
+skinparam maxMessageSize 150
+skinparam noteBackgroundColor #f9f9f9
+skinparam noteBorderColor #cccccc
+autonumber
+
+participant "Client" as C
+participant "Proxy (Serveur C)" as P
+participant "Serveur Cible (IP:Port)" as T
+
+== Phase 0 : Filtrage Anti-Scanner (Magic Word) ==
+
+C -> P: Établit la connexion TCP (ex: Port 80)
+C -> P: Envoie le Magic Word (ex: 8 octets "PROXY01\0")
+
+P -> P: Lit le Magic Word via recv() (Taille stricte)
+
+alt Magic Word Invalide ou Timeout
+	P -> C: Ferme la socket immédiatement (Drop)
+	note right: Protège le CPU contre les\nscanners et attaques DoS
+else Magic Word Valide
+	P -> P: Valide l'accès et bascule en\nattente de la charge utile cryptographique
+end
+
+== Phase 1 : Initialisation (Handshake ElGamal) ==
+
+note over P: Possède une paire de clés ElGamal\n(Générée au préalable)
+
+C -> C: Génère une clé de session aléatoire (32 octets)\npour ChaCha20
+C -> C: Chiffre la clé avec la clé Publique ElGamal du Proxy\n(Ajout d'un padding/hash pour l'intégrité)
+C -> P: Envoie la clé de session chiffrée
+P -> P: Déchiffre avec sa clé Privée ElGamal
+P -> P: Valide le format et isole la clé ChaCha20\ndans le contexte de la session
+
+== Phase 2 : Communication & Routage (AEAD) ==
+
+note over C
+	**Structure de la Charge Utile (En clair) :**
+	[Type Adresse (1) | Adresse Cible (Var) | Port (2) | Données Brutes]
+end note
+
+C -> C: Chiffre la Charge Utile (ChaCha20)\navec Clé de session + Nonce Client
+C -> C: Calcule le Tag d'intégrité (Poly1305)
+
+note over C, P
+**Structure du Paquet Réseau (Sur le fil) :**
+[Taille (2) | Nonce (12) | Ciphertext (Var) | Tag MAC (16)]
+end note
+
+C -> P: Envoie le paquet encapsulé
+P -> P: Vérifie l'intégrité avec le Tag MAC (Poly1305)
+P -> P: Déchiffre le Ciphertext (ChaCha20)
+P -> P: Extrait l'Adresse Cible, le Port et les Données Brutes
+
+P -> T: Établit une connexion TCP vers la Cible\n(Sauf si déjà ouverte pour cette session)
+P -> T: Transfère les Données Brutes (Relais transparent)
+T -> P: Renvoie la réponse (Données Brutes)
+
+P -> P: Chiffre la réponse (ChaCha20)\navec Clé de session + Nonce Proxy
+P -> P: Calcule le Tag MAC (Poly1305)
+P -> C: Envoie le paquet de réponse chiffré\n[Taille | Nonce Proxy | Ciphertext | Tag MAC]
+C -> C: Vérifie le Tag MAC et déchiffre la réponse
+
+@enduml
