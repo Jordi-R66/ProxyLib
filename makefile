@@ -1,31 +1,54 @@
 CC = gcc
-CFLAGS = -std=c17 -Wall -Wextra -O3 -flto
+CFLAGS = -std=gnu17 -Wall -Wextra -O3 -flto
 
-export MOCL_DIR = libs/myOwnCLib
-export CRYPTO_DIR = libs/cryptography
+SRC_DIR = src
+BUILD_DIR = build
+LIB_DIR = libs
 
-# 1. Déclarer les besoins spécifiques
-MOCL_USE_DICTS = 1
-MOCL_USE_VECTORS = 1
+# Inclusion des makefiles des sous-modules
+include $(LIB_DIR)/myOwnCLib/myOwnCLib.mk
+include $(LIB_DIR)/Cryptography/crypto.mk
 
-# 2. Inclusion des modules
-include $(CRYPTO_DIR)/crypto.mk
-include $(MOCL_DIR)/myOwnCLib.mk
+# Fichiers sources partagés (communs au client et au serveur)
+COMMON_SRCS = $(wildcard $(SRC_DIR)/common/*.c)
 
-# 3. Fusions
-INCLUDES = -Isrc $(MOCL_INCLUDES) $(CRYPTO_INCLUDES)
-SRCS = src/main.c $(MOCL_SRCS) $(CRYPTO_SRCS)
+# Fichiers sources spécifiques
+SERVER_SRCS = $(wildcard $(SRC_DIR)/server/*.c)
+CLIENT_SRCS = $(wildcard $(SRC_DIR)/client/*.c)
 
-OBJS = $(SRCS:.c=.o)
+# Fichiers objets correspondants
+COMMON_OBJS = $(patsubst $(SRC_DIR)/%, $(BUILD_DIR)/%, $(COMMON_SRCS:.c=.o))
+SERVER_OBJS = $(patsubst $(SRC_DIR)/%, $(BUILD_DIR)/%, $(SERVER_SRCS:.c=.o))
+CLIENT_OBJS = $(patsubst $(SRC_DIR)/%, $(BUILD_DIR)/%, $(CLIENT_SRCS:.c=.o))
 
-# 4. Édition de liens finale (création de l'exécutable)
-main: $(OBJS)
-	$(CC) $(CFLAGS) $^ -o $@ -lpthread
+# Objets tiers issus de tes sous-modules (via les fichiers .mk)
+LIB_OBJS = $(MYOWNCLIB_OBJS) $(CRYPTO_OBJS)
 
-# 5. Règle de compilation de chaque fichier source (.c -> .o)
-%.o: %.c
+# Noms des exécutables cibles
+SERVER_EXEC = server.out
+CLIENT_EXEC = client.out
+
+# Drapeau d'inclusion pour les structures de tes libs
+INCLUDES = -I$(SRC_DIR) -I$(LIB_DIR)
+
+# Règle principale : compile les deux binaires
+all: $(SERVER_EXEC) $(CLIENT_EXEC)
+
+# Règle de liaison pour le Serveur
+$(SERVER_EXEC): $(SERVER_OBJS) $(COMMON_OBJS) $(LIB_OBJS)
+	$(CC) $(CFLAGS) $^ -o $@
+
+# Règle de liaison pour le Client
+$(CLIENT_EXEC): $(CLIENT_OBJS) $(COMMON_OBJS) $(LIB_OBJS)
+	$(CC) $(CFLAGS) $^ -o $@
+
+# Règle générique pour la compilation des fichiers objets
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
-# Optionnel : Règle pour nettoyer
+# Nettoyage des exécutables et du répertoire build
 clean:
-	rm -f main $(OBJS)
+	rm -rf $(BUILD_DIR) $(SERVER_EXEC) $(CLIENT_EXEC)
+
+.PHONY: all clean
