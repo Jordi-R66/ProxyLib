@@ -1,54 +1,52 @@
 CC = gcc
 CFLAGS = -std=gnu17 -Wall -Wextra -O3 -flto
+LDFLAGS = -flto
 
 SRC_DIR = src
 BUILD_DIR = build
 LIB_DIR = libs
+CRYPTO_DIR = $(LIB_DIR)/Cryptography
+MOCL_DIR = $(LIB_DIR)/myOwnCLib
 
-# Inclusion des makefiles des sous-modules
-include $(LIB_DIR)/myOwnCLib/myOwnCLib.mk
-include $(LIB_DIR)/Cryptography/crypto.mk
+CRYPTO_ABS_PATH = $(abspath $(CRYPTO_DIR))
+MOCL_ABS_PATH = $(abspath $(MOCL_DIR))
 
-# Fichiers sources partagés (communs au client et au serveur)
+INCLUDES = -I$(SRC_DIR) -I$(CRYPTO_DIR)/src/common -I$(MOCL_DIR)
+
+LDLIBS = -L$(CRYPTO_DIR)/build -lcryptography -L$(MOCL_DIR)/build -lmyownclib -lpthread
+
 COMMON_SRCS = $(wildcard $(SRC_DIR)/common/*.c)
-
-# Fichiers sources spécifiques
 SERVER_SRCS = $(wildcard $(SRC_DIR)/server/*.c)
 CLIENT_SRCS = $(wildcard $(SRC_DIR)/client/*.c)
 
-# Fichiers objets correspondants
 COMMON_OBJS = $(patsubst $(SRC_DIR)/%, $(BUILD_DIR)/%, $(COMMON_SRCS:.c=.o))
 SERVER_OBJS = $(patsubst $(SRC_DIR)/%, $(BUILD_DIR)/%, $(SERVER_SRCS:.c=.o))
 CLIENT_OBJS = $(patsubst $(SRC_DIR)/%, $(BUILD_DIR)/%, $(CLIENT_SRCS:.c=.o))
 
-# Objets tiers issus de tes sous-modules (via les fichiers .mk)
-LIB_OBJS = $(MYOWNCLIB_OBJS) $(CRYPTO_OBJS)
-
-# Noms des exécutables cibles
 SERVER_EXEC = server.out
 CLIENT_EXEC = client.out
 
-# Drapeau d'inclusion pour les structures de tes libs
-INCLUDES = -I$(SRC_DIR) -I$(LIB_DIR)
+.PHONY: all clean crypto_lib mocl_lib
 
-# Règle principale : compile les deux binaires
-all: $(SERVER_EXEC) $(CLIENT_EXEC)
+all: mocl_lib crypto_lib $(SERVER_EXEC) $(CLIENT_EXEC)
 
-# Règle de liaison pour le Serveur
-$(SERVER_EXEC): $(SERVER_OBJS) $(COMMON_OBJS) $(LIB_OBJS)
-	$(CC) $(CFLAGS) $^ -o $@
+mocl_lib:
+	$(MAKE) -C $(MOCL_ABS_PATH) lib MODE=prod
 
-# Règle de liaison pour le Client
-$(CLIENT_EXEC): $(CLIENT_OBJS) $(COMMON_OBJS) $(LIB_OBJS)
-	$(CC) $(CFLAGS) $^ -o $@
+crypto_lib: mocl_lib
+	$(MAKE) -C $(CRYPTO_ABS_PATH) lib MOCL_DIR=$(MOCL_ABS_PATH) MODE=prod
 
-# Règle générique pour la compilation des fichiers objets
+$(SERVER_EXEC): $(SERVER_OBJS) $(COMMON_OBJS) crypto_lib mocl_lib
+	$(CC) $(CFLAGS) $(LDFLAGS) $(SERVER_OBJS) $(COMMON_OBJS) -o $@ $(LDLIBS)
+
+$(CLIENT_EXEC): $(CLIENT_OBJS) $(COMMON_OBJS) crypto_lib mocl_lib
+	$(CC) $(CFLAGS) $(LDFLAGS) $(CLIENT_OBJS) $(COMMON_OBJS) -o $@ $(LDLIBS)
+
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
-# Nettoyage des exécutables et du répertoire build
 clean:
 	rm -rf $(BUILD_DIR) $(SERVER_EXEC) $(CLIENT_EXEC)
-
-.PHONY: all clean
+	$(MAKE) -C $(CRYPTO_ABS_PATH) clean
+	$(MAKE) -C $(MOCL_ABS_PATH) clean
