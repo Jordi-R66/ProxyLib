@@ -5,14 +5,14 @@
 
 #include "includes.h"
 
-#pragma pack()
-typedef struct {
-	uint16_t connId;
-	uint32_t packetNumber;
-	uint32_t size;
-} ProxyHeader;
+typedef enum ConnectionState {
+	NO_CONN			= 0,
+	ACCEPTED		= 1,
+	WAITING_CRYPTO	= 2,
+	WAITING_REMOTE	= 3,
+	CONNECTED		= 4,
+	REMOTE_LOST		= 5,
+	CLIENT_LOST		= 6
+} ConnectionState;
 
-#pragma pack(1)
-
-#define PROXY_HDR_SIZE sizeof(ProxyHeader)
 #endif
