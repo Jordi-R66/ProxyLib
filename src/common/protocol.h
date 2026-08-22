@@ -5,6 +5,8 @@
 
 #include "types.h"
 
+#define DEFAULT_PORT 2693 // MARKED AS UNASSIGNED ACCORDING TO IANA'S LIST OF ASSIGNED PORTS (AS OF 2026-08-22 14:40 UTC)
+
 #pragma pack()
 
 typedef enum {

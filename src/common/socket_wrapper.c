@@ -1,6 +1,6 @@
-#include "stream_socket.h"
+#include "socket_wrapper.h"
 
-void StreamSock_close(StreamSocketPtr stream_sock) {
+void closeSocket(SocketPtr stream_sock) {
 	bool is_valid = (stream_sock != NULL);
 
 	if (is_valid && stream_sock->fd >= 0) {
@@ -9,9 +9,12 @@ void StreamSock_close(StreamSocketPtr stream_sock) {
 	}
 }
 
-bool StreamSock_accept(socket_t server_fd, StreamSocketPtr stream_sock) {
+bool acceptSocket(SocketPtr server_sock, SocketPtr stream_sock) {
+	socket_t server_fd = server_sock->fd;
+
 	bool is_valid = (server_fd >= 0 && stream_sock != NULL);
 	bool success = false;
+
 	socket_t client_fd = -1;
 	sockaddr_in client_addr;
 	socklen_t client_len = sizeof(sockaddr_in);
@@ -29,7 +32,7 @@ bool StreamSock_accept(socket_t server_fd, StreamSocketPtr stream_sock) {
 	return success;
 }
 
-bool StreamSock_connect(const char* hostname, uint16_t port, StreamSocketPtr stream_sock) {
+bool connectSocket(const char* hostname, uint16_t port, SocketPtr stream_sock) {
 	bool is_valid = (hostname != NULL && port > 0 && stream_sock != NULL);
 	bool success = false;
 	socket_t sock_fd = -1;
@@ -62,7 +65,7 @@ bool StreamSock_connect(const char* hostname, uint16_t port, StreamSocketPtr str
 	return success;
 }
 
-socket_t StreamSock_createServer(uint16_t port, int32_t backlog) {
+socket_t createServerSocket(uint16_t port, int32_t backlog) {
 	bool is_valid = (port > 0 && backlog > 0);
 	bool success = false;
 	socket_t server_fd = -1;
@@ -97,7 +100,7 @@ socket_t StreamSock_createServer(uint16_t port, int32_t backlog) {
 	return server_fd;
 }
 
-bool StreamSock_read(StreamSocketPtr stream_sock, void* buffer, size_t size, ssize_t* bytes_read) {
+bool readSocket(SocketPtr stream_sock, void* buffer, size_t size, ssize_t* bytes_read) {
 	bool is_valid = (stream_sock != NULL && stream_sock->fd >= 0 && buffer != NULL && size > 0);
 	bool success = false;
 	ssize_t local_read = -1;
@@ -120,7 +123,7 @@ bool StreamSock_read(StreamSocketPtr stream_sock, void* buffer, size_t size, ssi
 	return success;
 }
 
-bool StreamSock_write(StreamSocketPtr stream_sock, const void* data, size_t size, ssize_t* bytes_written) {
+bool writeSocket(SocketPtr stream_sock, const void* data, size_t size, ssize_t* bytes_written) {
 	bool is_valid = (stream_sock != NULL && stream_sock->fd >= 0 && data != NULL && size > 0);
 	bool success = false;
 	ssize_t local_written = -1;

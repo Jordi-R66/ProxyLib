@@ -1,17 +1,17 @@
 #pragma once
 
-#ifndef STREAM_SOCKET_H
-#define STREAM_SOCKET_H
+#ifndef SOCKET_WRAPPER_H
+#define SOCKET_WRAPPER_H
 
 #include "includes.h"
 
-typedef struct StreamSocket {
+typedef struct Socket {
 	socket_t fd;
-} StreamSocket, * StreamSocketPtr;
+} Socket, * SocketPtr;
 
-#define STREAM_SOCKET_SIZE sizeof(StreamSocket)
+#define STREAM_SOCKET_SIZE sizeof(Socket)
 
-void StreamSock_close(StreamSocketPtr stream_sock);
+void closeSocket(SocketPtr stream_sock);
 
 /**
  * Bloque en attente d'une connexion cliente sur un socket serveur existant.
@@ -21,7 +21,7 @@ void StreamSock_close(StreamSocketPtr stream_sock);
  * @param stream_sock Le pointeur vers la structure à remplir pour le client
  * @return true si un client a été accepté et initialisé avec succès, false sinon.
  */
-bool StreamSock_accept(socket_t server_fd, StreamSocketPtr stream_sock);
+bool acceptSocket(SocketPtr server_sock, SocketPtr stream_sock);
 
 /**
  * Crée un socket et se connecte à un serveur distant, puis initialise la structure.
@@ -31,9 +31,9 @@ bool StreamSock_accept(socket_t server_fd, StreamSocketPtr stream_sock);
  * @param stream_sock Le pointeur vers la structure à initialiser
  * @return true si la connexion et l'initialisation ont réussi, false sinon.
  */
-bool StreamSock_connect(const char* hostname, uint16_t port, StreamSocketPtr stream_sock);
+bool connectSocket(const char* hostname, uint16_t port, SocketPtr stream_sock);
 
-socket_t StreamSock_createServer(uint16_t port, int32_t backlog);
+socket_t createServerSocket(uint16_t port, int32_t backlog);
 
 /**
  * Tente de lire des données depuis le socket.
@@ -44,7 +44,7 @@ socket_t StreamSock_createServer(uint16_t port, int32_t backlog);
  * @param bytes_read Pointeur optionnel pour récupérer le nombre d'octets réellement lus.
  * @return true si au moins un octet a été lu, false en cas de déconnexion ou d'erreur.
  */
-bool StreamSock_read(StreamSocketPtr stream_sock, void* buffer, size_t size, ssize_t* bytes_read);
+bool readSocket(SocketPtr stream_sock, void* buffer, size_t size, ssize_t* bytes_read);
 
 /**
  * Tente d'écrire des données sur le socket.
@@ -55,6 +55,6 @@ bool StreamSock_read(StreamSocketPtr stream_sock, void* buffer, size_t size, ssi
  * @param bytes_written Pointeur optionnel pour récupérer le nombre d'octets réellement envoyés.
  * @return true si la totalité des octets a été écrite, false sinon.
  */
-bool StreamSock_write(StreamSocketPtr stream_sock, const void* data, size_t size, ssize_t* bytes_written);
+bool writeSocket(SocketPtr stream_sock, const void* data, size_t size, ssize_t* bytes_written);
 
 #endif
